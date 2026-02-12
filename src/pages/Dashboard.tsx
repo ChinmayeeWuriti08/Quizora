@@ -44,6 +44,13 @@ export default function Dashboard() {
                 <Plus className="h-4 w-4" />
                 Create Quiz
               </Button>
+              <Button
+                variant="secondary"
+                onClick={() => navigate("/blind")}
+              >
+                Start Blind Challenge
+              </Button>
+
             </div>
             <div className="px-4 md:px-8 lg:px-32 py-3 h-screen">
               {/* Column Labels - Hidden on mobile */}

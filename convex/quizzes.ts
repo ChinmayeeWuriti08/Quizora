@@ -6,7 +6,7 @@ import { v } from "convex/values";
 export const createQuiz = mutation({
   args: {
     title: v.string(),
-    description: v.optional(v.string()),
+    description: v.string(),
     questions: v.array(
       v.object({
         question_text: v.string(),
@@ -23,19 +23,23 @@ export const createQuiz = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
+    console.log("IDENTITY:", identity);
+
     if (!identity) {
       throw new Error("You must be logged in to create a quiz.");
     }
+
     const creatorId = identity.subject;
 
     const quizId = await ctx.db.insert("quizzes", {
       title: args.title,
       description: args.description,
-      creatorId: creatorId,
+      creatorId,
     });
 
     for (let i = 0; i < args.questions.length; i++) {
       const q = args.questions[i];
+
       await ctx.db.insert("questions", {
         quizId,
         question_text: q.question_text,
@@ -53,6 +57,7 @@ export const createQuiz = mutation({
     return quizId;
   },
 });
+
 
 // Admin: Edit an existing quiz
 export const editQuiz = mutation({
@@ -162,6 +167,21 @@ export const getMyQuizzes = query({
     }));
   },
 });
+
+export const getRandomQuiz = query({
+  args: {},
+  handler: async (ctx) => {
+    const quizzes = await ctx.db.query("quizzes").collect();
+
+    if (quizzes.length === 0) {
+      return null;
+    }
+
+    const randomIndex = Math.floor(Math.random() * quizzes.length);
+    return quizzes[randomIndex];
+  },
+});
+
 
 // Delete a quiz and its questions. Only the creator may delete.
 export const deleteQuiz = mutation({

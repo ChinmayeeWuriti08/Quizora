@@ -47,11 +47,11 @@ export const createSession = mutation({
     }
 
     if (!join_code) throw new Error("Failed to generate unique join code.");
-
+    const finalJoinCode = join_code;
     const sessionId = await ctx.db.insert("quiz_sessions", {
       quizId: args.quizId,
       hostId: identity.subject,
-      join_code,
+      join_code : finalJoinCode,
       status: "waiting",
       current_question_index: 0,
       show_leaderboard: false,
@@ -60,6 +60,56 @@ export const createSession = mutation({
     return sessionId;
   },
 });
+
+export const createBlindSession = mutation({
+  args: { quizId: v.id("quizzes") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("You must be logged in to play a quiz.");
+    }
+
+    const quiz = await ctx.db.get(args.quizId);
+    if (!quiz) {
+      throw new Error("Quiz not found.");
+    }
+
+    // Get first question
+    const firstQuestion = await ctx.db
+      .query("questions")
+      .withIndex("by_quizId", (q) => q.eq("quizId", args.quizId))
+      .order("asc")
+      .first();
+
+    if (!firstQuestion) {
+      throw new Error("No questions found for this quiz.");
+    }
+
+    const now = Date.now();
+    const endTime = now + firstQuestion.time_limit * 1000;
+
+    // Create session in active state
+    const sessionId = await ctx.db.insert("quiz_sessions", {
+      quizId: args.quizId,
+      hostId: identity.subject,
+      join_code: "BLIND-" + Math.random().toString(36).slice(2, 8),
+      status: "active",
+      current_question_index: 0,
+      currentQuestionEndTime: endTime,
+      show_leaderboard: false,
+    });
+
+    const participantId = await ctx.db.insert("participants", {
+      sessionId,
+      name: "Blind Player",
+      score: 0,
+    });
+
+    return { sessionId, participantId };
+  },
+});
+
+
 
 
 export const getSessionByJoinCode = query({
