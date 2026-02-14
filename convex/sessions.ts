@@ -77,7 +77,7 @@ export const createBlindSession = mutation({
     // Get first question
     const firstQuestion = await ctx.db
       .query("questions")
-      .withIndex("by_quizId", (q) => q.eq("quizId", args.quizId))
+      .withIndex("by_quizId_order", (q) => q.eq("quizId", args.quizId))
       .order("asc")
       .first();
 
